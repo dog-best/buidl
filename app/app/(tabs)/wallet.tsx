@@ -1,24 +1,45 @@
-import { View, Text } from 'react-native';
-import { SUPPORTED_NETWORKS } from '@/constants/mock';
+import { View, Text, Button } from "react-native";
+import { WebView, WebViewNavigation } from "react-native-webview";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
-export default function Wallet() {
+export default function WalletScreen() {
+  const [showPaystack, setShowPaystack] = useState(false);
+  const reference = `REF_${Date.now()}`;
+
+  const verifyPayment = async () => {
+    await supabase.functions.invoke("paystack-verify", {
+      body: {
+        reference,
+        amount: 5000,
+      },
+    });
+
+    setShowPaystack(false);
+  };
+
+  if (showPaystack) {
+    return (
+      <WebView
+        source={{
+          uri: `https://paystack.com/pay/YOUR_PAYSTACK_PUBLIC_LINK?reference=${reference}`,
+        }}
+        onNavigationStateChange={(state: WebViewNavigation) => {
+          if (state.url.includes("success")) {
+            verifyPayment();
+          }
+        }}
+      />
+    );
+  }
+
   return (
-    <View className="flex-1 bg-white px-6 pt-16">
-      <Text className="text-2xl font-bold mb-6">Wallet</Text>
-
-      {SUPPORTED_NETWORKS.map((asset) => (
-        <View
-          key={asset.id}
-          className="border rounded-xl p-4 mb-4"
-        >
-          <Text className="font-semibold">
-            {asset.name} ({asset.symbol})
-          </Text>
-          <Text className="text-gray-500 mt-1">
-            Networks: {asset.networks.join(', ')}
-          </Text>
-        </View>
-      ))}
+    <View>
+      <Text>Wallet</Text>
+      <Button
+        title="Fund Wallet ₦5,000"
+        onPress={() => setShowPaystack(true)}
+      />
     </View>
   );
 }
