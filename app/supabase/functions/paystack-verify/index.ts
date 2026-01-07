@@ -1,28 +1,31 @@
-import { createClient } from "@supabase/supabase-js";
+/// <reference lib="deno.ns" />
 
-export default async function handler(req: Request) {
+import { serve } from "https://deno.land/std/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+serve(async (req) => {
   try {
     const { reference, amount, user_id } = await req.json();
 
     if (!reference || !amount || !user_id) {
       return new Response(
         JSON.stringify({ error: "Missing parameters" }),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const paystackRes = await fetch(
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${Deno.env.get("PAYSTACK_SECRET_KEY")}`,
         },
-      }
+      },
     );
 
     const paystackData = await paystackRes.json();
@@ -30,7 +33,7 @@ export default async function handler(req: Request) {
     if (paystackData.data?.status !== "success") {
       return new Response(
         JSON.stringify({ error: "Payment not successful" }),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,13 +46,13 @@ export default async function handler(req: Request) {
 
     return new Response(
       JSON.stringify({ success: true }),
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error(err);
     return new Response(
       JSON.stringify({ error: "Server error" }),
-      { status: 500 }
+      { status: 500 },
     );
   }
-}
+});
